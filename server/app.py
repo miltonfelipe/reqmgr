@@ -137,7 +137,7 @@ def login(body: LoginBody, response: Response):
         raise HTTPException(401, 'Invalid username or password')
     token = auth.create_session(row['id'])
     response.set_cookie(auth.SESSION_COOKIE, token, httponly=True, samesite='lax',
-                        max_age=auth.SESSION_DAYS * 86400)
+                        secure=auth.secure_cookies(), max_age=auth.SESSION_DAYS * 86400)
     return auth.user_public(row)
 
 
@@ -145,7 +145,7 @@ def login(body: LoginBody, response: Response):
 def logout(response: Response, reqmgr_session: str | None = Cookie(default=None)):
     if reqmgr_session:
         auth.delete_session(reqmgr_session)
-    response.delete_cookie(auth.SESSION_COOKIE)
+    response.delete_cookie(auth.SESSION_COOKIE, httponly=True, samesite='lax', secure=auth.secure_cookies())
     return {'ok': True}
 
 

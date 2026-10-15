@@ -1,0 +1,11 @@
+# Copy to /etc/systemd/system/ and enable: systemctl enable --now reqmgr-backup.timer
+[Unit]
+Description=Nightly REQMGR database backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

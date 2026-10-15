@@ -52,8 +52,10 @@ Then add users (user menu → *Manage users*) and add them to projects (Overview
 |-------------------------|--------------------|------------------------------------------|
 | `REQMGR_DB`             | `data/reqmgr.db`   | SQLite database file — back this up      |
 | `REQMGR_ADMIN_PASSWORD` | random, logged     | Password of the first `admin` account    |
+| `REQMGR_SECURE_COOKIES` | off                | Set to `1` when served over HTTPS        |
 
-For use beyond a trusted network, put it behind HTTPS (e.g. a reverse proxy such as nginx or Caddy).
+For use beyond a trusted network, put it behind HTTPS. **[DEPLOY.md](DEPLOY.md)** walks through a
+production setup on AWS (EC2 + systemd + Caddy + nightly backups) using the files in `deploy/`.
 
 **Moving from the browser-only version:** projects that were stored in a browser's local storage are
 offered for upload the first time someone logs in from that browser.
@@ -71,6 +73,7 @@ npm run lint
 ## Project Structure
 
 ```
+deploy/                 ← systemd units, Caddyfile, backup and update scripts
 server/                 ← FastAPI app (uvicorn)
 ├── app.py              ← REST API: auth, users, projects, members, import, backups
 ├── ops.py              ← project mutations + per-role permissions

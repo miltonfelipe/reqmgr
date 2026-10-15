@@ -1,0 +1,6 @@
+# Copy to /etc/caddy/Caddyfile and replace the domain with yours.
+# Caddy obtains and renews the HTTPS certificate automatically.
+reqmgr.example.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:8000
+}

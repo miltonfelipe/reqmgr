@@ -163,3 +163,11 @@ def test_reviewer_csv_import_is_backed_up(team):
     r = op(team['rob'], 'importCsv', requirements={'system': [{**REQ, 'traces': []}]})
     assert r.status_code == 200
     assert team['rob'].get('/api/projects/PROJ-1/snapshots').json()[0]['reason'] == 'Before CSV import'
+
+
+def test_secure_cookie_flag(client, monkeypatch):
+    r = client.post('/api/login', json={'username': 'admin', 'password': 'admin-pass'})
+    assert 'secure' not in r.headers['set-cookie'].lower()
+    monkeypatch.setenv('REQMGR_SECURE_COOKIES', '1')
+    r = client.post('/api/login', json={'username': 'admin', 'password': 'admin-pass'})
+    assert 'secure' in r.headers['set-cookie'].lower()

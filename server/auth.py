@@ -13,6 +13,11 @@ from .db import now_iso, reader, transaction
 
 SESSION_COOKIE = 'reqmgr_session'
 SESSION_DAYS = 14
+
+
+def secure_cookies():
+    """Mark cookies HTTPS-only; set REQMGR_SECURE_COOKIES=1 when served over HTTPS."""
+    return os.environ.get('REQMGR_SECURE_COOKIES', '').lower() in ('1', 'true', 'yes')
 _SCRYPT = dict(n=2**14, r=8, p=1)
 
 

@@ -1,0 +1,25 @@
+# REQMGR server — copy to /etc/systemd/system/reqmgr.service
+[Unit]
+Description=REQMGR requirements manager
+After=network.target
+
+[Service]
+User=reqmgr
+Group=reqmgr
+WorkingDirectory=/opt/reqmgr/app
+EnvironmentFile=/etc/reqmgr.env
+# Listens on localhost only; Caddy serves it publicly over HTTPS.
+# One worker: the app keeps its data in a single SQLite file.
+ExecStart=/opt/reqmgr/app/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8000 --proxy-headers
+Restart=always
+RestartSec=3
+
+# Hardening: the app can only write to its data directory
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/reqmgr
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+# Copy to /etc/systemd/system/ together with reqmgr-backup.timer
+[Unit]
+Description=Back up the REQMGR database
+
+[Service]
+Type=oneshot
+User=reqmgr
+Group=reqmgr
+EnvironmentFile=/etc/reqmgr.env
+ExecStart=/opt/reqmgr/app/deploy/backup.sh
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=/var/lib/reqmgr
