@@ -1,0 +1,64 @@
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.section {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
+  color: var(--text3); padding: 16px 16px 5px; text-transform: uppercase; font-weight: 600;
+}
+.list { padding: 4px 8px; display: flex; flex-direction: column; gap: 1px; }
+.itemWrap { position: relative; display: flex; align-items: stretch; }
+.connector { display: flex; align-items: stretch; flex-shrink: 0; }
+.connLine {
+  width: 10px;
+  border-left: 1.5px solid var(--border2);
+  border-bottom: 1.5px solid var(--border2);
+  border-bottom-left-radius: 4px;
+  margin-left: 7px; margin-bottom: 8px; flex-shrink: 0;
+}
+.item {
+  flex: 1; display: flex; align-items: center; gap: 7px;
+  padding: 6px 10px; border-radius: 7px; cursor: pointer;
+  color: var(--text2); font-size: 12px; font-weight: 400;
+  transition: all 0.1s; border: 1px solid transparent; user-select: none; min-width: 0;
+}
+.item:hover { color: var(--text); background: var(--bg3); border-color: var(--border); }
+.item.active { color: var(--accent); background: #eff6ff; border-color: #bfdbfe; font-weight: 500; }
+.item.active .icon { opacity: 1; color: var(--accent); }
+.itemTopLevel { font-weight: 600; }
+.itemMidLevel { font-size: 12px; }
+.itemLeaf { font-size: 11px; color: var(--text3); }
+.itemLeaf:hover { color: var(--text2); }
+.itemLeaf.active { color: var(--accent); }
+.icon { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.55; transition: opacity 0.1s; }
+.item:hover .icon { opacity: 0.8; }
+.item.active .icon { opacity: 1; }
+.itemLabel { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.badge {
+  margin-left: auto; padding: 1px 6px; border-radius: 99px;
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  background: var(--bg4); color: var(--text3); transition: all 0.15s; flex-shrink: 0;
+}
+.badge.populated { background: #eff6ff; color: var(--accent); }
+.cmtDot {
+  background: #fffbeb; color: #b45309;
+  font-family: var(--mono); font-size: 9px; padding: 1px 5px;
+  border-radius: 99px; font-weight: 600; flex-shrink: 0;
+  border: 1px solid #fde68a;
+}
+.roleTag {
+  margin-top: auto; padding: 10px 16px;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 10px; font-family: var(--mono); color: var(--text3);
+  letter-spacing: 0.04em; border-top: 1px solid var(--border);
+}
+.roleIndicator { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.role-manager  { background: var(--accent); }
+.role-reviewer { background: #b45309; }
+.footer {
+  padding: 10px 16px; border-top: 1px solid var(--border);
+  font-size: 10px; font-family: var(--mono); color: var(--text3);
+  letter-spacing: 0.04em; line-height: 1.7;
+}

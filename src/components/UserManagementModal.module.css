@@ -1,0 +1,35 @@
+.tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.tab {
+  padding: 7px 14px; background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--text3); font-size: 12px; font-family: var(--sans); cursor: pointer;
+  margin-bottom: -1px; transition: all 0.12s; font-weight: 500;
+}
+.tab:hover { color: var(--text2); }
+.tabActive { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
+.userList { display: flex; flex-direction: column; gap: 6px; min-height: 100px; }
+.userRow {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 9px;
+}
+.userAvatar {
+  width: 34px; height: 34px; border-radius: 8px; background: var(--accent);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; font-family: var(--mono); flex-shrink: 0;
+}
+.userInfo { flex: 1; }
+.userName { font-size: 12px; font-weight: 600; color: var(--text); }
+.userMeta { display: flex; gap: 8px; align-items: center; margin-top: 2px; }
+.userUn {
+  font-size: 10px; color: var(--text2); background: var(--bg2);
+  border: 1px solid var(--border2); border-radius: 4px; padding: 1px 6px; font-family: var(--mono);
+}
+.userRole { font-size: 9px; font-family: var(--mono); letter-spacing: 0.06em; font-weight: 700; }
+.role-manager  { color: var(--accent); }
+.role-reviewer { color: #b45309; }
+.userActions { display: flex; gap: 4px; }
+.err {
+  background: #fef2f2; border: 1px solid #fecaca;
+  border-radius: 7px; padding: 8px 12px; font-size: 12px; color: var(--danger); margin-top: 10px;
+}
+.cpwdWrap { margin-top: 16px; padding: 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; }
+.cpwdTitle { font-size: 12px; color: var(--text2); margin-bottom: 10px; font-weight: 500; }

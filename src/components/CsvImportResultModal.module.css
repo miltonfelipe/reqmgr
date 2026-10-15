@@ -1,0 +1,33 @@
+.summary {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; background: #f0fdf4;
+  border: 1px solid #bbf7d0; border-radius: 9px; margin-bottom: 16px;
+}
+.summaryIcon {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #dcfce7; color: #15803d;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; flex-shrink: 0;
+}
+.summaryTitle { font-size: 13px; color: var(--text); margin-bottom: 6px; font-weight: 500; }
+.summaryBreakdown { display: flex; gap: 10px; flex-wrap: wrap; }
+.catCount {
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 7px; font-weight: 600;
+}
+.warningsWrap {
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 9px; padding: 12px 14px; margin-bottom: 14px;
+}
+.warningsTitle {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; color: #b45309; margin-bottom: 10px;
+}
+.warningsList { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto; }
+.warningRow { display: flex; gap: 8px; align-items: baseline; font-size: 11px; color: var(--text2); line-height: 1.5; }
+.warningBullet { font-size: 9px; color: #b45309; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.hint {
+  font-size: 10px; color: var(--text3); line-height: 1.6;
+  padding: 10px 12px; background: var(--bg3);
+  border-radius: 7px; border: 1px solid var(--border);
+}

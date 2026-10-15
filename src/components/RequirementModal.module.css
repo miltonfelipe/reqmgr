@@ -1,0 +1,36 @@
+.traceSection { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.traceSectionTitle {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
+  color: var(--text3); text-transform: uppercase; margin-bottom: 12px; font-weight: 600;
+}
+.traceCount {
+  background: #f5f3ff; color: #7c3aed; font-size: 9px; font-family: var(--mono);
+  padding: 1px 6px; border-radius: 99px; font-weight: 700; border: 1px solid #ddd6fe;
+}
+.traceList { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.traceItem {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; transition: border-color 0.12s;
+}
+.traceItem:hover { border-color: var(--border2); }
+.traceChip {
+  padding: 2px 7px; border-radius: 4px; border: 1px solid transparent;
+  font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.04em; flex-shrink: 0;
+}
+.traceCatPrefix { font-family: var(--mono); font-size: 9px; font-weight: 700; flex-shrink: 0; }
+.traceId { font-family: var(--mono); font-size: 11px; color: var(--accent); flex-shrink: 0; min-width: 64px; font-weight: 700; }
+.traceTitle { font-size: 12px; color: var(--text2); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.traceUnknown { color: var(--text3); font-style: italic; font-size: 11px; }
+.traceRemove {
+  background: none; border: none; cursor: pointer; color: var(--text3);
+  font-size: 16px; line-height: 1; padding: 0 3px; border-radius: 3px; flex-shrink: 0; transition: all 0.1s;
+}
+.traceRemove:hover { color: var(--danger); background: #fef2f2; }
+.traceAddSection { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.traceAddLabel { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
+.traceAddRow { display: flex; align-items: center; gap: 8px; }
+.traceErr {
+  margin-top: 8px; padding: 7px 10px; border-radius: 6px;
+  background: #fef2f2; border: 1px solid #fecaca; font-size: 11px; color: var(--danger);
+}

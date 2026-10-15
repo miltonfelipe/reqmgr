@@ -1,0 +1,68 @@
+/* ── RESET ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── CSS VARIABLES — Light theme ────────────────────── */
+:root {
+  /* Surfaces */
+  --bg:       #f8fafc;   /* page background   slate-50  */
+  --bg2:      #ffffff;   /* panels / sidebar  white     */
+  --bg3:      #f1f5f9;   /* input / card bg   slate-100 */
+  --bg4:      #e2e8f0;   /* hover bg          slate-200 */
+  --bg5:      #cbd5e1;   /* pressed / muted   slate-300 */
+
+  /* Borders */
+  --border:   #e2e8f0;   /* default border    slate-200 */
+  --border2:  #cbd5e1;   /* stronger border   slate-300 */
+  --border3:  #94a3b8;   /* focus ring edge   slate-400 */
+
+  /* Accent (primary blue) */
+  --accent:   #2563eb;   /* blue-600  */
+  --accent2:  #1d4ed8;   /* blue-700  */
+
+  /* Semantic */
+  --warn:     #d97706;   /* amber-600 */
+  --ok:       #16a34a;   /* green-600 */
+  --danger:   #dc2626;   /* red-600   */
+
+  /* Text */
+  --text:     #0f172a;   /* slate-900 */
+  --text2:    #475569;   /* slate-600 */
+  --text3:    #94a3b8;   /* slate-400 */
+
+  /* Typography */
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+
+  /* Category accent colours (saturated, legible on white) */
+  --c-cust:   #0891b2;   /* cyan-600   */
+  --c-sys:    #ea580c;   /* orange-600 */
+  --c-hw:     #7c3aed;   /* violet-600 */
+  --c-sw:     #059669;   /* emerald-600*/
+  --c-mech:   #db2777;   /* pink-600   */
+
+  /* Elevation shadows */
+  --shadow-sm:  0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md:  0 4px 12px rgba(15,23,42,0.1),  0 2px 4px rgba(15,23,42,0.06);
+  --shadow-lg:  0 10px 30px rgba(15,23,42,0.12), 0 4px 8px rgba(15,23,42,0.06);
+}
+
+/* ── BASE ──────────────────────────────────────────── */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SCROLLBAR ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border3); }
+
+/* ── FOCUS ─────────────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
