@@ -3,17 +3,16 @@
 // Managers can create, edit, reorder, and delete sections.
 // Requirements are assigned to sections in the RequirementModal.
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CATEGORIES, CAT_META, OBJECT_TYPES, REQ_TYPES } from '../store/db';
 import { Badge, Btn, Empty } from './UI';
 import { SectionModal } from './SectionModal';
 import styles from './AllRequirementsPanel.module.css';
 
 export function AllRequirementsPanel({
-  project, isManager, session,
+  project, isManager,
   onEditReq, onDeleteReq,
   onUpsertSection, onDeleteSection, onReorderSections,
-  onAddComment,
 }) {
   const [secModal, setSecModal]     = useState({ open: false, editing: null });
   const [collapsed, setCollapsed]   = useState({});

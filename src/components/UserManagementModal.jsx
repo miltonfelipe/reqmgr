@@ -1,5 +1,5 @@
 // ── components/UserManagementModal.js ────────────────
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ROLE_LABELS, ROLES } from '../store/auth';
 import { Modal, ModalFooter, Btn, Field, Input, Select, FormGrid } from './UI';
 import styles from './UserManagementModal.module.css';

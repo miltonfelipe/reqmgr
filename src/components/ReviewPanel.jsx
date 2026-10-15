@@ -5,13 +5,13 @@
 //   • Version history (expandable diffs)
 //   • Review comments thread (add / edit / resolve / delete)
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Badge, Btn } from './UI';
 import { ROLE_LABELS } from '../store/auth';
 import { OBJECT_TYPES, REQ_TYPES } from '../store/db';
 import styles from './ReviewPanel.module.css';
 
-export function ReviewPanel({ req, category, catMeta, getBlockName, session, isManager,
+export function ReviewPanel({ req, catMeta, getBlockName, session, isManager,
   onClose, onEdit, onDelete, onAddComment, onEditComment, onResolveComment, onDeleteComment }) {
   const [commentText, setCommentText]   = useState('');
   const [editingCmt,  setEditingCmt]    = useState(null); // { id, text }

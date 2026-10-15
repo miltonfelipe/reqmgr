@@ -3,7 +3,7 @@
 // grouped by category. Used in the traceability section of
 // RequirementModal to pick a target requirement.
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { CATEGORIES, CAT_META } from '../store/db';
 import styles from './ReqSearchSelect.module.css';
 

@@ -1,5 +1,4 @@
 // ── components/Overview.js ───────────────────────────
-import React from 'react';
 import { CAT_META, CATEGORIES } from '../store/db';
 import { Badge, Btn } from './UI';
 import styles from './Overview.module.css';

@@ -1,5 +1,4 @@
 // ── components/CsvImportResultModal.jsx ──────────────
-import React from 'react';
 import { Modal, ModalFooter, Btn } from './UI';
 import styles from './CsvImportResultModal.module.css';
 

@@ -47,7 +47,7 @@ export function loadAuthDb() {
       const parsed = JSON.parse(raw);
       if (parsed?.users?.length) return parsed;
     }
-  } catch (_) {}
+  } catch { /* storage unavailable */ }
   // First boot — seed defaults
   const fresh = { users: SEED_USERS };
   saveAuthDb(fresh);
@@ -55,7 +55,7 @@ export function loadAuthDb() {
 }
 
 export function saveAuthDb(authDb) {
-  try { localStorage.setItem(AUTH_KEY, JSON.stringify(authDb)); } catch (_) {}
+  try { localStorage.setItem(AUTH_KEY, JSON.stringify(authDb)); } catch { /* storage unavailable */ }
 }
 
 // ── Session ───────────────────────────────────────────
@@ -63,16 +63,16 @@ export function loadSession() {
   try {
     const raw = localStorage.getItem(SESS_KEY);
     if (raw) return JSON.parse(raw);
-  } catch (_) {}
+  } catch { /* storage unavailable */ }
   return null;
 }
 
 export function saveSession(session) {
-  try { localStorage.setItem(SESS_KEY, JSON.stringify(session)); } catch (_) {}
+  try { localStorage.setItem(SESS_KEY, JSON.stringify(session)); } catch { /* storage unavailable */ }
 }
 
 export function clearSession() {
-  try { localStorage.removeItem(SESS_KEY); } catch (_) {}
+  try { localStorage.removeItem(SESS_KEY); } catch { /* storage unavailable */ }
 }
 
 // ── Helpers ───────────────────────────────────────────
@@ -83,12 +83,4 @@ export function authenticate(authDb, username, password) {
   if (!user) return null;
   if (user.passwordHash !== hashPw(password)) return null;
   return user;
-}
-
-export function canEdit(session) {
-  return session?.role === ROLES.MANAGER;
-}
-
-export function canReview(session) {
-  return !!session; // both roles can review
 }

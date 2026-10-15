@@ -1,5 +1,5 @@
 // ── components/RequirementsPanel.js ──────────────────
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CAT_META, OBJECT_TYPES, REQ_TYPES } from '../store/db';
 import { Badge, Btn, Empty } from './UI';
 import { ReviewPanel } from './ReviewPanel';
@@ -178,7 +178,6 @@ export function RequirementsPanel({
         {detail && (
           <ReviewPanel
             req={detail}
-            category={category}
             catMeta={meta}
             getBlockName={getBlockName}
             session={session}

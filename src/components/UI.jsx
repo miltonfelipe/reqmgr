@@ -1,6 +1,5 @@
 // ── components/UI.js ─────────────────────────────────
 // Shared low-level UI primitives.
-import React from 'react';
 import styles from './UI.module.css';
 
 // ── Badge ─────────────────────────────────────────────

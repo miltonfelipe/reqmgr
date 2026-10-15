@@ -1,6 +1,5 @@
 // ── components/Sidebar.jsx ───────────────────────────
-import React from 'react';
-import { CAT_META, CAT_LEVEL } from '../store/db';
+import { CAT_META } from '../store/db';
 import styles from './Sidebar.module.css';
 
 // Requirements nav is structured to show the hierarchy:
@@ -55,7 +54,6 @@ export function Sidebar({ currentPanel, onNavigate, project, session }) {
               const level = item.level ?? 0;
 
               // Compute hierarchy connector lines for cat items with level > 0
-              const prevItem    = group.items[idx - 1];
               const nextItem    = group.items[idx + 1];
               const isLastChild = nextItem ? (nextItem.level ?? 0) < level : true;
 

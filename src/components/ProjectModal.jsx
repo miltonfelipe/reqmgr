@@ -1,5 +1,5 @@
 // ── components/ProjectModal.js ───────────────────────
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, ModalFooter, Btn, Field, Input, Select, Textarea, FormGrid } from './UI';
 
 const EMPTY = {

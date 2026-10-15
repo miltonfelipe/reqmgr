@@ -1,7 +1,7 @@
 // ── components/SectionModal.js ───────────────────────
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { makeEmptySection, SECTION_COLORS } from '../store/db';
-import { Modal, ModalFooter, Btn, Field, Input, Textarea, FormGrid } from './UI';
+import { Modal, ModalFooter, Btn, Field, Input, Textarea } from './UI';
 import styles from './SectionModal.module.css';
 
 export function SectionModal({ open, onClose, onSave, editing, existingSections }) {

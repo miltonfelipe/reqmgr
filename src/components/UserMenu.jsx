@@ -1,5 +1,5 @@
 // ── components/UserMenu.js ───────────────────────────
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ROLE_LABELS } from '../store/auth';
 import styles from './UserMenu.module.css';
 

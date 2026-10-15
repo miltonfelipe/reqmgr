@@ -5,15 +5,6 @@ const DB_KEY = 'reqmgr_v2';
 //   customer (top-level) → system → hardware / software / mechanical
 export const CATEGORIES = ['customer', 'system', 'hardware', 'software', 'mechanical'];
 
-// Hierarchy levels (used for visual grouping in the sidebar and overview)
-export const CAT_LEVEL = {
-  customer:   0,  // top-level — voice of the customer
-  system:     1,  // derived from customer
-  hardware:   2,  // derived from system
-  software:   2,
-  mechanical: 2,
-};
-
 export const CAT_META = {
   customer:   { prefix: 'CUST', label: 'Customer',   color: 'var(--c-cust)', badgeClass: 'b-cust' },
   system:     { prefix: 'SYS',  label: 'System',     color: 'var(--c-sys)',  badgeClass: 'b-sys'  },
@@ -65,12 +56,12 @@ export function loadDb() {
   try {
     const raw = localStorage.getItem(DB_KEY);
     if (raw) { const p = JSON.parse(raw); if (p?.projects) return p; }
-  } catch (_) {}
+  } catch { /* storage unavailable */ }
   return { projects: {} };
 }
 
 export function saveDb(db) {
-  try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch (_) {}
+  try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch { /* storage unavailable */ }
 }
 
 export function nowIso() { return new Date().toISOString(); }
@@ -144,11 +135,4 @@ export function getAllReqs(project) {
   return CATEGORIES.flatMap(cat =>
     (project.requirements[cat] ?? []).map(r => ({ ...r, _cat: cat }))
   );
-}
-
-// Build a lookup map: reqId -> req (with _cat)
-export function buildReqMap(project) {
-  const map = {};
-  getAllReqs(project).forEach(r => { map[r.id] = r; });
-  return map;
 }

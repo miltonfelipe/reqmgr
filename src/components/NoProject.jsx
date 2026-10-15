@@ -1,5 +1,4 @@
 // ── components/NoProject.js ──────────────────────────
-import React from 'react';
 import { Btn } from './UI';
 import styles from './NoProject.module.css';
 

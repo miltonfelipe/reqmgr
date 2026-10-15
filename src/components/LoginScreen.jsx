@@ -1,5 +1,5 @@
 // ── components/LoginScreen.js ────────────────────────
-import React, { useState } from 'react';
+import { useState } from 'react';
 import styles from './LoginScreen.module.css';
 
 export function LoginScreen({ onLogin }) {

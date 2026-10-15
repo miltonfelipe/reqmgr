@@ -1,5 +1,5 @@
 // ── App.jsx ──────────────────────────────────────────
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useStore }           from './hooks/useStore';
 import { useAuth }            from './hooks/useAuth';
 import { useToast }           from './hooks/useToast';
@@ -40,9 +40,6 @@ export default function App() {
 
   const { db, currentPid, currentProject } = store;
   const { session, isManager } = auth;
-
-  // ── Auth gate ─────────────────────────────────────
-  if (!auth.isLoggedIn) return <LoginScreen onLogin={auth.login} />;
 
   // ── Project ────────────────────────────────────────
   function openNewProject()  { setProjModal({ open: true, editing: null, editingId: null }); }
@@ -96,6 +93,9 @@ export default function App() {
 
   // ── Diagram ───────────────────────────────────────
   const handleSaveDiagram = useCallback((b, c, bi, ci) => store.saveDiagramState(b, c, bi, ci), [store]);
+
+  // ── Auth gate ─────────────────────────────────────
+  if (!auth.isLoggedIn) return <LoginScreen onLogin={auth.login} />;
 
   // ── JSON Export / Import ──────────────────────────
   function handleExportJson() {
@@ -170,12 +170,11 @@ export default function App() {
               )}
               {panel === 'all-reqs' && (
                 <AllRequirementsPanel
-                  project={currentProject} isManager={isManager} session={session}
+                  project={currentProject} isManager={isManager}
                   onEditReq={openEditReq} onDeleteReq={handleDeleteReq}
                   onUpsertSection={handleUpsertSection}
                   onDeleteSection={handleDeleteSection}
                   onReorderSections={handleReorderSections}
-                  onAddComment={handleAddComment}
                 />
               )}
               {CATEGORIES.map(cat => panel === cat && (

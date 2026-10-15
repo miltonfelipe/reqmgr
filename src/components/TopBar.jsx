@@ -1,5 +1,5 @@
 // ── components/TopBar.jsx ────────────────────────────
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { Btn, VSep } from './UI';
 import { UserMenu } from './UserMenu';
 import styles from './TopBar.module.css';

@@ -1,6 +1,6 @@
 // ── components/RequirementModal.jsx ──────────────────
-import React, { useState, useEffect } from 'react';
-import { CAT_META, CATEGORIES, makeEmptyReq, TRACE_TYPES, OBJECT_TYPES, REQ_TYPES, getAllReqs } from '../store/db';
+import { useState, useEffect } from 'react';
+import { CAT_META, makeEmptyReq, TRACE_TYPES, OBJECT_TYPES, REQ_TYPES, getAllReqs } from '../store/db';
 import { Modal, ModalFooter, Btn, Field, Input, Select, Textarea, FormGrid } from './UI';
 import { ReqSearchSelect } from './ReqSearchSelect';
 import styles from './RequirementModal.module.css';
@@ -48,7 +48,7 @@ export function RequirementModal({ open, onClose, onSave, category, editing, edi
     setTraceType('derives');
     setTraceToId('');
     setTraceErr('');
-  }, [open, editing, category, project]); // eslint-disable-line
+  }, [open, editing, category, project]);
 
   function set(k) { return e => setForm(f => ({ ...f, [k]: e.target.value })); }
 

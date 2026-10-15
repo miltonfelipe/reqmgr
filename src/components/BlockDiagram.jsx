@@ -1,5 +1,5 @@
 // ── components/BlockDiagram.js ───────────────────────
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { BLOCK_COLORS } from '../store/db';
 import { Btn } from './UI';
 import styles from './BlockDiagram.module.css';

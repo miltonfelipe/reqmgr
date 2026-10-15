@@ -6,9 +6,8 @@
 // Managers can click cells to add/remove traces.
 // Color-coded by trace type. Hover shows tooltip.
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { CATEGORIES, CAT_META, TRACE_TYPES, getAllReqs } from '../store/db';
-import { Btn } from './UI';
 import styles from './TraceabilityMatrix.module.css';
 
 const TYPE_KEYS = Object.keys(TRACE_TYPES);
@@ -22,9 +21,7 @@ export function TraceabilityMatrix({ project, isManager, onAddTrace, onRemoveTra
   const [tooltip,      setTooltip]      = useState(null); // { x, y, content }
   const [highlight,    setHighlight]    = useState(null); // reqId to highlight row+col
 
-  if (!project) return null;
-
-  const allReqs = useMemo(() => getAllReqs(project), [project]);
+  const allReqs = useMemo(() => (project ? getAllReqs(project) : []), [project]);
 
   // Row set: reqs that have at least one trace OR are selected for rows
   // We show all reqs in selected categories for rows
@@ -58,6 +55,8 @@ export function TraceabilityMatrix({ project, isManager, onAddTrace, onRemoveTra
   const uncoveredRows = useMemo(() =>
     rowReqs.filter(r => !(r.traces ?? []).length && !allReqs.some(x => (x.traces??[]).some(t=>t.toId===r.id)))
   , [rowReqs, allReqs]);
+
+  if (!project) return null;
 
   function handleCellClick(rowReq, colReq) {
     if (!isManager) return;
