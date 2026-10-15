@@ -25,7 +25,6 @@
 }
 .userRole { font-size: 9px; font-family: var(--mono); letter-spacing: 0.06em; font-weight: 700; }
 .role-manager  { color: var(--accent); }
-.role-reviewer { color: #b45309; }
 .userActions { display: flex; gap: 4px; }
 .err {
   background: #fef2f2; border: 1px solid #fecaca;

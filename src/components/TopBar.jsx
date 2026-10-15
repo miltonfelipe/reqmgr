@@ -8,7 +8,7 @@ export function TopBar({
   db, currentPid, onSwitch, onNew,
   onExportJson, onImportJson,
   onExportCsv,  onImportCsv,
-  session, isManager, onLogout, onManageUsers,
+  session, isAdmin, onLogout, onManageUsers,
 }) {
   const jsonFileRef = useRef(null);
   const csvFileRef  = useRef(null);
@@ -58,28 +58,24 @@ export function TopBar({
         </select>
       </div>
 
-      {isManager && (
-        <Btn variant="primary" onClick={onNew}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-            <path d="M8 3v10M3 8h10"/>
-          </svg>
-          New project
-        </Btn>
-      )}
+      <Btn variant="primary" onClick={onNew}>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+          <path d="M8 3v10M3 8h10"/>
+        </svg>
+        New project
+      </Btn>
 
       <VSep />
 
       {/* ── JSON group ── */}
       <div className={styles.fileGroup}>
         <span className={styles.fileGroupLabel}>JSON</span>
-        {isManager && (
-          <Btn onClick={() => jsonFileRef.current?.click()} title="Import project JSON">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
-              <path d="M3 12h10M8 3v7M5 7l3 3 3-3"/>
-            </svg>
-            Import
-          </Btn>
-        )}
+        <Btn onClick={() => jsonFileRef.current?.click()} title="Import project JSON (replaces the project; a backup is kept)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+            <path d="M3 12h10M8 3v7M5 7l3 3 3-3"/>
+          </svg>
+          Import
+        </Btn>
         <Btn onClick={onExportJson} disabled={!currentPid} title="Export project JSON">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
             <path d="M3 12h10M8 10V3M5 6l3-3 3 3"/>
@@ -94,14 +90,12 @@ export function TopBar({
       {/* ── CSV group ── */}
       <div className={styles.fileGroup}>
         <span className={styles.fileGroupLabel}>CSV</span>
-        {isManager && (
-          <Btn onClick={() => csvFileRef.current?.click()} disabled={!currentPid} title="Import requirements from CSV">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
-              <path d="M3 12h10M8 3v7M5 7l3 3 3-3"/>
-            </svg>
-            Import
-          </Btn>
-        )}
+        <Btn onClick={() => csvFileRef.current?.click()} disabled={!currentPid} title="Import requirements from CSV (a backup is kept)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+            <path d="M3 12h10M8 3v7M5 7l3 3 3-3"/>
+          </svg>
+          Import
+        </Btn>
         <Btn onClick={onExportCsv} disabled={!currentPid} title="Export requirements to CSV">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
             <path d="M3 12h10M8 10V3M5 6l3-3 3 3"/>
@@ -114,7 +108,7 @@ export function TopBar({
       <VSep />
 
       {session && (
-        <UserMenu session={session} onLogout={onLogout} onManageUsers={onManageUsers} />
+        <UserMenu session={session} isAdmin={isAdmin} onLogout={onLogout} onManageUsers={onManageUsers} />
       )}
     </header>
   );

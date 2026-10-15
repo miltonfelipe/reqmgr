@@ -204,7 +204,7 @@ export function importFromCsv(csvText, project) {
     if (b.title) blockByName[b.title.trim().toLowerCase()] = String(b.id);
   });
 
-  const requirements = { system: [], hardware: [], software: [], mechanical: [] };
+  const requirements = Object.fromEntries(CATEGORIES.map(c => [c, []]));
   const warnings     = [];
   const seenIds      = new Set();
 

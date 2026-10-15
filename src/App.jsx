@@ -1,11 +1,11 @@
 // ── App.jsx ──────────────────────────────────────────
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useStore }           from './hooks/useStore';
 import { useAuth }            from './hooks/useAuth';
 import { useToast }           from './hooks/useToast';
 import { exportProject, parseImportFile } from './utils/exportImport';
 import { exportToCsv, importFromCsv }     from './utils/csvUtils';
-import { CATEGORIES }         from './store/db';
+import { CATEGORIES, loadLegacyProjects, archiveLegacyProjects } from './store/db';
 
 import { TopBar }                from './components/TopBar';
 import { Sidebar }               from './components/Sidebar';
@@ -20,6 +20,7 @@ import { RequirementModal }      from './components/RequirementModal';
 import { LoginScreen }           from './components/LoginScreen';
 import { UserManagementModal }   from './components/UserManagementModal';
 import { CsvImportResultModal }  from './components/CsvImportResultModal';
+import { ProjectAccessModal }    from './components/ProjectAccessModal';
 import { Toast }                 from './components/UI';
 
 import styles from './App.module.css';
@@ -29,17 +30,24 @@ const REQ_CLOSED  = { open: false, category: null, editing: null, editingId: nul
 
 export default function App() {
   const auth  = useAuth();
-  const store = useStore();
   const { toast, showToast } = useToast();
+  const showError = useCallback(msg => showToast(msg, 'err'), [showToast]);
+  const store = useStore({ enabled: auth.isLoggedIn, onError: showError });
 
   const [panel,       setPanel]       = useState('overview');
   const [projModal,   setProjModal]   = useState(PROJ_CLOSED);
   const [reqModal,    setReqModal]    = useState(REQ_CLOSED);
   const [usersMgmt,   setUsersMgmt]   = useState(false);
   const [csvResult,   setCsvResult]   = useState(null);  // { counts, warnings, projectName }
+  const [accessOpen,  setAccessOpen]  = useState(false);
 
   const { db, currentPid, currentProject } = store;
-  const { session, isManager } = auth;
+  const isManager = store.role === 'manager';
+  // The logged-in user plus their role in the open project
+  const session = useMemo(
+    () => auth.user && { ...auth.user, role: store.role ?? 'reviewer' },
+    [auth.user, store.role],
+  );
 
   // ── Project ────────────────────────────────────────
   function openNewProject()  { setProjModal({ open: true, editing: null, editingId: null }); }
@@ -47,17 +55,17 @@ export default function App() {
     if (!currentProject) return;
     setProjModal({ open: true, editing: currentProject, editingId: currentPid });
   }
-  function handleSaveProject({ id, fields }) {
+  async function handleSaveProject({ id, fields }) {
     if (!projModal.editingId && Object.keys(db.projects).includes(id)) {
       showToast('Project ID already exists', 'err'); return;
     }
-    store.upsertProject(id, fields, projModal.editingId);
+    if (!await store.upsertProject(id, fields, projModal.editingId)) return;
     setProjModal(PROJ_CLOSED); setPanel('overview'); showToast('Project saved', 'ok');
   }
-  function handleDeleteProject() {
+  async function handleDeleteProject() {
     if (!currentProject) return;
-    if (!window.confirm(`Delete "${currentProject.name}"? This cannot be undone.`)) return;
-    store.deleteProject(currentPid); setPanel('overview'); showToast('Project deleted', 'ok');
+    if (!window.confirm(`Delete "${currentProject.name}" for all its members? This cannot be undone.`)) return;
+    if (await store.deleteProject(currentPid)) { setPanel('overview'); showToast('Project deleted', 'ok'); }
   }
 
   // ── Requirements ───────────────────────────────────
@@ -67,13 +75,13 @@ export default function App() {
     if (!req) return;
     setReqModal({ open: true, category: cat, editing: req, editingId: id });
   }
-  function handleSaveReq(data) {
-    store.upsertReq(reqModal.category, data, reqModal.editingId, session.displayName);
+  async function handleSaveReq(data) {
+    if (!await store.upsertReq(reqModal.category, data, reqModal.editingId)) return;
     setReqModal(REQ_CLOSED); showToast('Requirement saved', 'ok');
   }
-  function handleDeleteReq(cat, id) {
+  async function handleDeleteReq(cat, id) {
     if (!window.confirm('Delete this requirement?')) return;
-    store.deleteReq(cat, id); showToast('Requirement deleted', 'ok');
+    if (await store.deleteReq(cat, id)) showToast('Requirement deleted', 'ok');
   }
 
   // ── Sections ───────────────────────────────────────
@@ -86,15 +94,35 @@ export default function App() {
   const handleRemoveTrace = useCallback((cat, rid, toId)       => store.removeTrace(cat, rid, toId),    [store]);
 
   // ── Comments ──────────────────────────────────────
-  const handleAddComment     = useCallback((cat, rid, text)      => store.addComment(cat, rid, text, session),              [store, session]);
-  const handleEditComment    = useCallback((cat, rid, cid, text) => store.editComment(cat, rid, cid, text),                 [store]);
-  const handleResolveComment = useCallback((cat, rid, cid)       => store.resolveComment(cat, rid, cid, session.displayName),[store, session]);
-  const handleDeleteComment  = useCallback((cat, rid, cid)       => store.deleteComment(cat, rid, cid),                     [store]);
+  const handleAddComment     = useCallback((cat, rid, text)      => store.addComment(cat, rid, text),       [store]);
+  const handleEditComment    = useCallback((cat, rid, cid, text) => store.editComment(cat, rid, cid, text), [store]);
+  const handleResolveComment = useCallback((cat, rid, cid)       => store.resolveComment(cat, rid, cid),     [store]);
+  const handleDeleteComment  = useCallback((cat, rid, cid)       => store.deleteComment(cat, rid, cid),     [store]);
 
   // ── Diagram ───────────────────────────────────────
   const handleSaveDiagram = useCallback((b, c, bi, ci) => store.saveDiagramState(b, c, bi, ci), [store]);
 
+  // ── One-time upload of projects saved in this browser before the server ──
+  const legacyChecked = useRef(false);
+  useEffect(() => {
+    if (!auth.isLoggedIn || legacyChecked.current) return;
+    legacyChecked.current = true;
+    const legacy = Object.entries(loadLegacyProjects());
+    if (!legacy.length) return;
+    const names = legacy.map(([pid, p]) => `• ${p.name} [${pid}]`).join('\n');
+    if (!window.confirm(`This browser has ${legacy.length} project(s) saved locally from before the server:\n\n${names}\n\nUpload them to the server now?`)) return;
+    (async () => {
+      let uploaded = 0;
+      for (const [pid, project] of legacy) {
+        if (await store.importProject(pid, project)) uploaded++;
+      }
+      if (uploaded === legacy.length) archiveLegacyProjects();
+      showToast(`Uploaded ${uploaded} of ${legacy.length} local project(s)`, uploaded === legacy.length ? 'ok' : 'err');
+    })();
+  }, [auth.isLoggedIn, store, showToast]);
+
   // ── Auth gate ─────────────────────────────────────
+  if (auth.checking) return null;
   if (!auth.isLoggedIn) return <LoginScreen onLogin={auth.login} />;
 
   // ── JSON Export / Import ──────────────────────────
@@ -103,14 +131,18 @@ export default function App() {
     exportProject(currentPid, currentProject);
     showToast('Project exported as JSON', 'ok');
   }
-  function handleImportJson(text) {
-    try {
-      const { pid, project } = parseImportFile(text);
-      if (db.projects[pid] && !window.confirm(`"${project.name}" exists. Overwrite?`)) return;
-      store.importProject(pid, project);
-      setPanel('overview');
-      showToast(`"${project.name}" imported`, 'ok');
-    } catch (e) { showToast('Import failed: ' + e.message, 'err'); }
+  async function handleImportJson(text) {
+    let parsed;
+    try { parsed = parseImportFile(text); } catch (e) { showToast('Import failed: ' + e.message, 'err'); return; }
+    const { pid, project } = parsed;
+    if (db.projects[pid] && !window.confirm(
+      `Replace project "${db.projects[pid].name}" [${pid}] for everyone with the contents of this file?\n\n` +
+      'A backup of the current state is saved first and can be restored under Members & backups.'
+    )) return;
+    const res = await store.importProject(pid, project);
+    if (!res) return;
+    setPanel('overview');
+    showToast(res.created ? `"${project.name}" imported` : `"${project.name}" replaced (backup #${res.backupId} saved)`, 'ok');
   }
 
   // ── CSV Export / Import ───────────────────────────
@@ -119,18 +151,18 @@ export default function App() {
     exportToCsv(currentProject, currentPid);
     showToast('Requirements exported as CSV', 'ok');
   }
-  function handleImportCsv(text) {
+  async function handleImportCsv(text) {
     if (!currentProject) { showToast('Select a project first', 'err'); return; }
     try {
       const { requirements, warnings } = importFromCsv(text, currentProject);
-      store.importCsvRequirements(requirements);
+      if (!await store.importCsvRequirements(requirements)) return;
 
       // Build per-category counts for the result modal
       const counts = Object.fromEntries(
         CATEGORIES.map(c => [c, (requirements[c] ?? []).length])
       );
       setCsvResult({ counts, warnings, projectName: currentProject.name });
-      showToast('CSV imported', 'ok');
+      showToast('CSV imported (backup saved)', 'ok');
     } catch (e) { showToast('' + e.message, 'err'); }
   }
 
@@ -152,8 +184,8 @@ export default function App() {
         onImportJson={handleImportJson}
         onExportCsv={handleExportCsv}
         onImportCsv={handleImportCsv}
-        session={session} isManager={isManager}
-        onLogout={auth.logout} onManageUsers={() => setUsersMgmt(true)}
+        session={session} isAdmin={auth.isAdmin}
+        onLogout={auth.logout} onManageUsers={() => { auth.loadUsers(); setUsersMgmt(true); }}
       />
 
       <div className={styles.body}>
@@ -161,12 +193,13 @@ export default function App() {
 
         <main className={styles.content}>
           {!currentProject ? (
-            <NoProject onNew={isManager ? openNewProject : null} />
+            <NoProject onNew={openNewProject} />
           ) : (
             <>
               {panel === 'overview' && (
                 <Overview project={currentProject} pid={currentPid}
-                  onEdit={openEditProject} onDelete={handleDeleteProject} isManager={isManager} />
+                  onEdit={openEditProject} onDelete={handleDeleteProject} isManager={isManager}
+                  onAccess={() => { auth.loadUsers(); setAccessOpen(true); }} />
               )}
               {panel === 'all-reqs' && (
                 <AllRequirementsPanel
@@ -209,8 +242,14 @@ export default function App() {
         editing={reqModal.editing} editingId={reqModal.editingId} project={currentProject} />
 
       <UserManagementModal open={usersMgmt} onClose={() => setUsersMgmt(false)}
-        authDb={auth.authDb} session={session} onAdd={auth.addUser}
+        users={auth.users} session={session} onAdd={auth.addUser}
         onDelete={auth.deleteUser} onChangePassword={auth.changePassword} />
+
+      {currentPid && (
+        <ProjectAccessModal open={accessOpen} onClose={() => setAccessOpen(false)}
+          pid={currentPid} isManager={isManager} users={auth.users} userId={session.userId}
+          onRestore={store.restoreBackup} onError={showError} />
+      )}
 
       <CsvImportResultModal
         open={!!csvResult} onClose={() => setCsvResult(null)} result={csvResult} />

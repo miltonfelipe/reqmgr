@@ -12,6 +12,8 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    // During development the API runs separately: uvicorn server.app:app --reload
+    proxy: { '/api': 'http://127.0.0.1:8000' },
   },
 
   build: {

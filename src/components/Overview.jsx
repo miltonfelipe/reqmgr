@@ -3,7 +3,7 @@ import { CAT_META, CATEGORIES } from '../store/db';
 import { Badge, Btn } from './UI';
 import styles from './Overview.module.css';
 
-export function Overview({ project, pid, onEdit, onDelete, isManager }) {
+export function Overview({ project, pid, onEdit, onDelete, onAccess, isManager }) {
   if (!project) return null;
 
   const counts = {};
@@ -35,12 +35,15 @@ export function Overview({ project, pid, onEdit, onDelete, isManager }) {
           <div className={styles.title}>{project.name}</div>
           <div className={styles.sub}>{pid} · v{project.version || '—'}</div>
         </div>
-        {isManager && (
-          <div className={styles.actions}>
-            <Btn size="sm" onClick={onEdit}>Edit</Btn>
-            <Btn size="sm" variant="danger" onClick={onDelete}>Delete</Btn>
-          </div>
-        )}
+        <div className={styles.actions}>
+          <Btn size="sm" onClick={onAccess}>Members &amp; backups</Btn>
+          {isManager && (
+            <>
+              <Btn size="sm" onClick={onEdit}>Edit</Btn>
+              <Btn size="sm" variant="danger" onClick={onDelete}>Delete</Btn>
+            </>
+          )}
+        </div>
       </div>
 
       <div className={styles.body}>

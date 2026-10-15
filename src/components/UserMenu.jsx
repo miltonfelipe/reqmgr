@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ROLE_LABELS } from '../store/auth';
 import styles from './UserMenu.module.css';
 
-export function UserMenu({ session, onLogout, onManageUsers }) {
+export function UserMenu({ session, isAdmin, onLogout, onManageUsers }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -41,7 +41,7 @@ export function UserMenu({ session, onLogout, onManageUsers }) {
             </div>
           </div>
           <div className={styles.dropDivider} />
-          {session.role === 'manager' && (
+          {isAdmin && (
             <button className={styles.dropItem} onClick={() => { setOpen(false); onManageUsers(); }}>
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
                 <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/>

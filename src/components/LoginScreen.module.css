@@ -75,10 +75,4 @@
   font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
   color: var(--text3); text-transform: uppercase; margin-bottom: 10px; font-weight: 600;
 }
-.hintRow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.hintRole { font-size: 11px; color: var(--text2); }
-.hintCred {
-  font-family: var(--mono); font-size: 10px; color: var(--text2);
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 5px; padding: 2px 7px;
-}
+.hintText { font-size: 11px; color: var(--text2); }

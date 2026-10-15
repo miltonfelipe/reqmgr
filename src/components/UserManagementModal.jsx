@@ -1,34 +1,38 @@
 // ── components/UserManagementModal.js ────────────────
+// Administrators create accounts here. What each user may do in a
+// project is set per project, under Members & backups.
 import { useState } from 'react';
-import { ROLE_LABELS, ROLES } from '../store/auth';
 import { Modal, ModalFooter, Btn, Field, Input, Select, FormGrid } from './UI';
 import styles from './UserManagementModal.module.css';
 
-export function UserManagementModal({ open, onClose, authDb, onAdd, onDelete, onChangePassword, session }) {
+const EMPTY_FORM = { username: '', displayName: '', isAdmin: 'no', password: '', confirm: '' };
+
+export function UserManagementModal({ open, onClose, users, onAdd, onDelete, onChangePassword, session }) {
   const [tab, setTab]         = useState('list');
-  const [form, setForm]       = useState({ username: '', displayName: '', role: ROLES.REVIEWER, password: '', confirm: '' });
+  const [form, setForm]       = useState(EMPTY_FORM);
   const [cpwdTarget, setCpwdTarget] = useState(null);
   const [newPwd, setNewPwd]   = useState('');
   const [err, setErr]         = useState('');
 
   function set(k) { return e => setForm(f => ({ ...f, [k]: e.target.value })); }
 
-  function handleAdd() {
+  async function handleAdd() {
     setErr('');
     if (!form.username.trim())     { setErr('Username required'); return; }
     if (!form.displayName.trim())  { setErr('Display name required'); return; }
     if (form.password.length < 6)  { setErr('Password must be at least 6 characters'); return; }
     if (form.password !== form.confirm) { setErr('Passwords do not match'); return; }
-    const res = onAdd(form.username.trim(), form.displayName.trim(), form.role, form.password);
+    const res = await onAdd(form.username.trim(), form.displayName.trim(), form.isAdmin === 'yes', form.password);
     if (!res.ok) { setErr(res.error); return; }
-    setForm({ username: '', displayName: '', role: ROLES.REVIEWER, password: '', confirm: '' });
+    setForm(EMPTY_FORM);
     setTab('list');
   }
 
-  function handleChangePwd() {
+  async function handleChangePwd() {
     setErr('');
     if (newPwd.length < 6) { setErr('Password must be at least 6 characters'); return; }
-    onChangePassword(cpwdTarget, newPwd);
+    const res = await onChangePassword(cpwdTarget, newPwd);
+    if (!res.ok) { setErr(res.error); return; }
     setCpwdTarget(null); setNewPwd('');
   }
 
@@ -41,8 +45,8 @@ export function UserManagementModal({ open, onClose, authDb, onAdd, onDelete, on
 
       {tab === 'list' && (
         <div className={styles.userList}>
-          {authDb.users.map(u => (
-            <div key={u.id} className={styles.userRow}>
+          {users.map(u => (
+            <div key={u.userId} className={styles.userRow}>
               <div className={styles.userAvatar}>
                 {(u.displayName || u.username).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
               </div>
@@ -50,16 +54,16 @@ export function UserManagementModal({ open, onClose, authDb, onAdd, onDelete, on
                 <div className={styles.userName}>{u.displayName}</div>
                 <div className={styles.userMeta}>
                   <code className={styles.userUn}>{u.username}</code>
-                  <span className={`${styles.userRole} ${styles['role-'+u.role]}`}>{ROLE_LABELS[u.role]}</span>
+                  {u.isAdmin && <span className={`${styles.userRole} ${styles['role-manager']}`}>ADMINISTRATOR</span>}
                 </div>
               </div>
               <div className={styles.userActions}>
-                <Btn size="xs" onClick={() => { setCpwdTarget(u.id); setNewPwd(''); setErr(''); }}>
+                <Btn size="xs" onClick={() => { setCpwdTarget(u.userId); setNewPwd(''); setErr(''); }}>
                   Change pwd
                 </Btn>
-                {u.id !== session?.userId && (
-                  <Btn size="xs" variant="danger" onClick={() => {
-                    if (window.confirm(`Delete user "${u.username}"?`)) { const r = onDelete(u.id); if (!r.ok) setErr(r.error); }
+                {u.userId !== session?.userId && (
+                  <Btn size="xs" variant="danger" onClick={async () => {
+                    if (window.confirm(`Delete user "${u.username}"?`)) { const r = await onDelete(u.userId); if (!r.ok) setErr(r.error); }
                   }}>×</Btn>
                 )}
               </div>
@@ -75,10 +79,10 @@ export function UserManagementModal({ open, onClose, authDb, onAdd, onDelete, on
             <Field label="Display name *"><Input value={form.displayName} onChange={set('displayName')} placeholder="Full Name" /></Field>
           </FormGrid>
           <div style={{ marginTop: 14 }}>
-            <Field label="Role">
-              <Select value={form.role} onChange={set('role')}>
-                <option value={ROLES.MANAGER}>Requirements Manager</option>
-                <option value={ROLES.REVIEWER}>Reviewer</option>
+            <Field label="Account type">
+              <Select value={form.isAdmin} onChange={set('isAdmin')}>
+                <option value="no">User — sees the projects they are added to</option>
+                <option value="yes">Administrator — manages users and all projects</option>
               </Select>
             </Field>
           </div>
@@ -98,7 +102,7 @@ export function UserManagementModal({ open, onClose, authDb, onAdd, onDelete, on
       {cpwdTarget && (
         <div className={styles.cpwdWrap}>
           <div className={styles.cpwdTitle}>
-            Change password for <strong>{authDb.users.find(u=>u.id===cpwdTarget)?.username}</strong>
+            Change password for <strong>{users.find(u=>u.userId===cpwdTarget)?.username}</strong>
           </div>
           <Input type="password" value={newPwd} onChange={e=>setNewPwd(e.target.value)} placeholder="New password (min. 6 chars)" autoFocus />
           {err && <div className={styles.err} style={{marginTop:8}}>{err}</div>}

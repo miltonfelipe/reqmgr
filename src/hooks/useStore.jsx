@@ -1,278 +1,151 @@
 // ── hooks/useStore.js ─────────────────────────────────
-import { useState, useCallback } from 'react';
-import { loadDb, saveDb, nowIso, makeEmptyProject, makeSnapshot, makeComment } from '../store/db';
+// Project state backed by the REQMGR server. Every change is sent as an
+// operation; the server applies it, checks the user's role, and returns
+// the updated project. The open project is polled for others' changes.
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { api } from '../api';
 
-export function useStore() {
-  const [db, setDb] = useState(() => loadDb());
-  const [currentPid, setCurrentPid] = useState(() => {
-    const keys = Object.keys(loadDb().projects);
-    return keys.length > 0 ? keys[keys.length - 1] : null;
-  });
+const POLL_MS  = 5000;
+const LAST_KEY = 'reqmgr_last_project';
 
-  const persist = useCallback((nextDb) => { setDb(nextDb); saveDb(nextDb); }, []);
-  const currentProject = currentPid ? db.projects[currentPid] : null;
+function rememberPid(pid) {
+  try { pid ? localStorage.setItem(LAST_KEY, pid) : localStorage.removeItem(LAST_KEY); } catch { /* optional */ }
+}
+function recallPid() {
+  try { return localStorage.getItem(LAST_KEY); } catch { return null; }
+}
+
+// Mutations resolve to true on success, false after reporting the error via onError.
+export function useStore({ enabled, onError }) {
+  const [projects,   setProjects]   = useState([]);   // [{ id, name, role, revision }]
+  const [currentPid, setCurrentPid] = useState(null);
+  const [current,    setCurrent]    = useState(null); // { project, revision, role }
+  const revisionRef = useRef(null);
+  const pidRef      = useRef(null);
+  const onErrorRef  = useRef(onError);
+  onErrorRef.current = onError;
+
+  const report = useCallback(e => { onErrorRef.current?.(e.message); return false; }, []);
+
+  const applyProject = useCallback((pid, data) => {
+    if (pid !== pidRef.current) return;                     // user switched project meanwhile
+    if (data.revision < (revisionRef.current ?? 0)) return; // stale poll response
+    revisionRef.current = data.revision;
+    setCurrent(prev => ({ role: prev?.role, ...data }));
+    setProjects(ps => ps.map(p => p.id === pid ? { ...p, name: data.project.name } : p));
+  }, []);
+
+  // ── Loading ────────────────────────────────────────
+  const openProject = useCallback(async (pid) => {
+    pidRef.current = pid; setCurrentPid(pid); rememberPid(pid);
+    revisionRef.current = null; setCurrent(null);
+    if (!pid) return;
+    try {
+      const data = await api(`projects/${encodeURIComponent(pid)}`);
+      if (pid !== pidRef.current) return;
+      revisionRef.current = data.revision;
+      setCurrent(data);
+    } catch (e) { report(e); }
+  }, [report]);
+
+  const refreshProjects = useCallback(async (preferPid) => {
+    try {
+      const list = await api('projects');
+      setProjects(list);
+      const ids = list.map(p => p.id);
+      const pid = [preferPid, recallPid()].find(id => id && ids.includes(id)) ?? ids[ids.length - 1] ?? null;
+      await openProject(pid);
+    } catch (e) { report(e); }
+  }, [openProject, report]);
+
+  useEffect(() => {
+    if (enabled) refreshProjects();
+    else { setProjects([]); pidRef.current = null; setCurrentPid(null); setCurrent(null); }
+  }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps -- reload only on login/logout
+
+  // ── Polling for other users' changes ───────────────
+  useEffect(() => {
+    if (!enabled || !currentPid) return;
+    async function poll() {
+      if (document.hidden || revisionRef.current == null) return;
+      try {
+        const data = await api(`projects/${encodeURIComponent(currentPid)}?since=${revisionRef.current}`);
+        if (data) applyProject(currentPid, data);
+      } catch (e) {
+        if (e.status === 404) { report(new Error('This project is no longer available to you')); refreshProjects(); }
+      }
+    }
+    const timer = setInterval(poll, POLL_MS);
+    window.addEventListener('focus', poll);
+    return () => { clearInterval(timer); window.removeEventListener('focus', poll); };
+  }, [enabled, currentPid, applyProject, refreshProjects, report]);
+
+  // ── Operations on the open project ─────────────────
+  const op = useCallback(async (name, args) => {
+    try {
+      const data = await api(`projects/${encodeURIComponent(currentPid)}/ops`, { method: 'POST', body: { op: name, args } });
+      applyProject(currentPid, data);
+      return true;
+    } catch (e) { return report(e); }
+  }, [currentPid, applyProject, report]);
 
   // ── Project CRUD ───────────────────────────────────
-  const upsertProject = useCallback((id, fields, editingId = null) => {
-    const next = { ...db };
-    const existing = editingId ? next.projects[editingId] : null;
-    const base = existing ?? makeEmptyProject(id, fields.name);
-    const proj = { ...base, ...fields, updatedAt: nowIso(), createdAt: existing ? existing.createdAt : nowIso() };
-    if (!proj.sections) proj.sections = [];
-    if (editingId && editingId !== id) delete next.projects[editingId];
-    next.projects[id] = proj;
-    persist(next); setCurrentPid(id); return id;
-  }, [db, persist]);
+  const upsertProject = useCallback(async (id, fields, editingId = null) => {
+    try {
+      if (editingId) await api(`projects/${encodeURIComponent(editingId)}`, { method: 'PUT', body: { id, fields } });
+      else           await api('projects', { method: 'POST', body: { id, fields } });
+      await refreshProjects(id);
+      return true;
+    } catch (e) { return report(e); }
+  }, [refreshProjects, report]);
 
-  const deleteProject = useCallback((id) => {
-    const next = { ...db, projects: { ...db.projects } };
-    delete next.projects[id]; persist(next);
-    const remaining = Object.keys(next.projects);
-    setCurrentPid(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-  }, [db, persist]);
+  const deleteProject = useCallback(async (id) => {
+    try {
+      await api(`projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      rememberPid(null);
+      await refreshProjects();
+      return true;
+    } catch (e) { return report(e); }
+  }, [refreshProjects, report]);
 
-  const switchProject = useCallback((id) => { setCurrentPid(id || null); }, []);
+  const switchProject = useCallback(id => openProject(id || null), [openProject]);
 
-  // ── Section CRUD ───────────────────────────────────
-  const upsertSection = useCallback((section, editingId = null) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const sections = [...(proj.sections ?? [])];
-    if (editingId) {
-      const idx = sections.findIndex(s => s.id === editingId);
-      if (idx >= 0) sections[idx] = section; else sections.push(section);
-    } else {
-      sections.push(section);
-    }
-    proj.sections = sections; proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
+  // Replaces the project (server backs it up first) or creates it
+  const importProject = useCallback(async (pid, project) => {
+    try {
+      const res = await api('import', { method: 'POST', body: { projectId: pid, project } });
+      await refreshProjects(pid);
+      return res;
+    } catch (e) { return report(e); }
+  }, [refreshProjects, report]);
 
-  const deleteSection = useCallback((sectionId) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    proj.sections = (proj.sections ?? []).filter(s => s.id !== sectionId);
-    // Unlink reqs from deleted section
-    const CATS = ['customer','system','hardware','software','mechanical'];
-    const reqs = { ...proj.requirements };
-    CATS.forEach(c => {
-      reqs[c] = (reqs[c] ?? []).map(r => r.sectionId === sectionId ? { ...r, sectionId: '' } : r);
-    });
-    proj.requirements = reqs; proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  const reorderSections = useCallback((orderedIds) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const map = Object.fromEntries((proj.sections ?? []).map(s => [s.id, s]));
-    proj.sections = orderedIds.map((id, i) => ({ ...map[id], order: i }));
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  // ── Requirement CRUD (with version history) ────────
-  const upsertReq = useCallback((cat, reqData, editingId = null, editorName = 'unknown') => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const reqs = [...(proj.requirements[cat] ?? [])];
-    if (editingId) {
-      const idx = reqs.findIndex(r => r.id === editingId);
-      if (idx >= 0) {
-        const old = reqs[idx];
-        const snapshot = makeSnapshot(old, editorName);
-        reqs[idx] = {
-          ...old, ...reqData, updatedAt: nowIso(),
-          version: (old.version ?? 1) + 1,
-          history: [...(old.history ?? []), snapshot],
-          comments: old.comments ?? [],
-          traces: reqData.traces ?? old.traces ?? [],
-        };
-      } else {
-        reqs.push({ ...reqData, createdAt: nowIso(), updatedAt: nowIso(), version: 1, history: [], comments: [], traces: reqData.traces ?? [] });
-      }
-    } else {
-      reqs.push({ ...reqData, createdAt: nowIso(), updatedAt: nowIso(), version: 1, history: [], comments: [], traces: reqData.traces ?? [] });
-    }
-    proj.requirements = { ...proj.requirements, [cat]: reqs };
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  const deleteReq = useCallback((cat, reqId) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    // Also remove traces pointing to this req
-    const CATS = ['customer','system','hardware','software','mechanical'];
-    const reqs = { ...proj.requirements };
-    CATS.forEach(c => {
-      reqs[c] = (reqs[c] ?? [])
-        .filter(r => r.id !== reqId || c !== cat)
-        .map(r => ({ ...r, traces: (r.traces ?? []).filter(t => t.toId !== reqId) }));
-    });
-    proj.requirements = reqs; proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  // ── Trace mutations ────────────────────────────────
-  const addTrace = useCallback((cat, reqId, toId, type) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const reqs = [...(proj.requirements[cat] ?? [])];
-    const idx  = reqs.findIndex(r => r.id === reqId);
-    if (idx < 0) return;
-    const existing = (reqs[idx].traces ?? []).find(t => t.toId === toId);
-    if (existing) return;
-    reqs[idx] = { ...reqs[idx], traces: [...(reqs[idx].traces ?? []), { toId, type }], updatedAt: nowIso() };
-    proj.requirements = { ...proj.requirements, [cat]: reqs };
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  const removeTrace = useCallback((cat, reqId, toId) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const reqs = [...(proj.requirements[cat] ?? [])];
-    const idx  = reqs.findIndex(r => r.id === reqId);
-    if (idx < 0) return;
-    reqs[idx] = { ...reqs[idx], traces: (reqs[idx].traces ?? []).filter(t => t.toId !== toId), updatedAt: nowIso() };
-    proj.requirements = { ...proj.requirements, [cat]: reqs };
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  // ── Comments ───────────────────────────────────────
-  const addComment = useCallback((cat, reqId, text, session) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const reqs = [...(proj.requirements[cat] ?? [])];
-    const idx  = reqs.findIndex(r => r.id === reqId);
-    if (idx < 0) return;
-    const req     = reqs[idx];
-    const comment = makeComment(text, session.userId, session.displayName, session.role, req.version ?? 1);
-    reqs[idx] = { ...req, comments: [...(req.comments ?? []), comment] };
-    proj.requirements = { ...proj.requirements, [cat]: reqs };
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  const editComment = useCallback((cat, reqId, commentId, newText) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const reqs = [...(proj.requirements[cat] ?? [])];
-    const idx  = reqs.findIndex(r => r.id === reqId);
-    if (idx < 0) return;
-    reqs[idx] = { ...reqs[idx], comments: (reqs[idx].comments ?? []).map(c =>
-      c.commentId === commentId ? { ...c, text: newText, editedAt: nowIso() } : c
-    )};
-    proj.requirements = { ...proj.requirements, [cat]: reqs };
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  const resolveComment = useCallback((cat, reqId, commentId, resolverName) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const reqs = [...(proj.requirements[cat] ?? [])];
-    const idx  = reqs.findIndex(r => r.id === reqId);
-    if (idx < 0) return;
-    reqs[idx] = { ...reqs[idx], comments: (reqs[idx].comments ?? []).map(c =>
-      c.commentId === commentId
-        ? { ...c, resolved: !c.resolved, resolvedBy: resolverName, resolvedAt: nowIso() }
-        : c
-    )};
-    proj.requirements = { ...proj.requirements, [cat]: reqs };
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  const deleteComment = useCallback((cat, reqId, commentId) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const reqs = [...(proj.requirements[cat] ?? [])];
-    const idx  = reqs.findIndex(r => r.id === reqId);
-    if (idx < 0) return;
-    reqs[idx] = { ...reqs[idx], comments: (reqs[idx].comments ?? []).filter(c => c.commentId !== commentId) };
-    proj.requirements = { ...proj.requirements, [cat]: reqs };
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  // ── Diagram ────────────────────────────────────────
-  const saveDiagramState = useCallback((blocks, conns, blockIdC, connIdC) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    proj.diagramBlocks = blocks; proj.diagramConns = conns;
-    proj.blockIdC = blockIdC; proj.connIdC = connIdC;
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj; persist(next);
-  }, [db, currentPid, persist]);
-
-  // ── Import ─────────────────────────────────────────
-  const importProject = useCallback((importedPid, importedProj) => {
-    const next = { ...db };
-    const CATS = ['customer','system','hardware','software','mechanical'];
-    if (!importedProj.requirements) importedProj.requirements = {};
-    CATS.forEach(c => {
-      if (!importedProj.requirements[c]) importedProj.requirements[c] = [];
-      importedProj.requirements[c] = importedProj.requirements[c].map(r => ({
-        ...r,
-        version:   r.version   ?? 1,
-        history:   r.history   ?? [],
-        comments:  r.comments  ?? [],
-        sectionId: r.sectionId ?? '',
-        traces:    r.traces    ?? [],
-      }));
-    });
-    if (!importedProj.diagramBlocks) importedProj.diagramBlocks = {};
-    if (!importedProj.diagramConns)  importedProj.diagramConns  = [];
-    if (!importedProj.blockIdC)      importedProj.blockIdC      = 0;
-    if (!importedProj.connIdC)       importedProj.connIdC       = 0;
-    if (!importedProj.sections)      importedProj.sections      = [];
-    next.projects[importedPid] = importedProj;
-    persist(next); setCurrentPid(importedPid);
-  }, [db, persist]);
-
-  // ── CSV import ────────────────────────────────────
-  const importCsvRequirements = useCallback((parsedRequirements) => {
-    const next = { ...db };
-    const proj = { ...next.projects[currentPid] };
-    const CATS = ['customer','system','hardware','software','mechanical'];
-    // Merge: keep existing reqs not in CSV, overwrite/add those in CSV
-    const merged = {};
-    CATS.forEach(c => {
-      const incoming = parsedRequirements[c] ?? [];
-      const incomingIds = new Set(incoming.map(r => r.id));
-      // Preserve existing reqs that are NOT being overwritten (keep history+comments)
-      const kept = (proj.requirements[c] ?? []).filter(r => !incomingIds.has(r.id));
-      // For overwritten ones, preserve history and comments from existing
-      const merged_c = [
-        ...kept,
-        ...incoming.map(r => {
-          const existing = (proj.requirements[c] ?? []).find(e => e.id === r.id);
-          return {
-            ...r,
-            history:  existing?.history  ?? [],
-            comments: existing?.comments ?? [],
-          };
-        }),
-      ];
-      merged[c] = merged_c;
-    });
-    proj.requirements = merged;
-    proj.updatedAt = nowIso();
-    next.projects[currentPid] = proj;
-    persist(next);
-  }, [db, currentPid, persist]);
+  const restoreBackup = useCallback(async (snapshotId) => {
+    try {
+      await api(`projects/${encodeURIComponent(currentPid)}/snapshots/${snapshotId}/restore`, { method: 'POST' });
+      await openProject(currentPid);
+      return true;
+    } catch (e) { return report(e); }
+  }, [currentPid, openProject, report]);
 
   return {
-    db, currentPid, currentProject,
-    upsertProject, deleteProject, switchProject,
-    upsertSection, deleteSection, reorderSections,
-    upsertReq, deleteReq,
-    addTrace, removeTrace,
-    addComment, editComment, resolveComment, deleteComment,
-    saveDiagramState, importProject,
-    importCsvRequirements,
+    db: { projects: Object.fromEntries(projects.map(p => [p.id, p])) },
+    currentPid,
+    currentProject: current?.project ?? null,
+    role:           current?.role ?? null,
+    refreshProjects,
+    upsertProject, deleteProject, switchProject, importProject, restoreBackup,
+    upsertSection:   (section, editingId = null)  => op('upsertSection',   { section, editingId }),
+    deleteSection:   (sectionId)                   => op('deleteSection',   { sectionId }),
+    reorderSections: (orderedIds)                  => op('reorderSections', { orderedIds }),
+    upsertReq:       (category, req, editingId = null) => op('upsertReq',   { category, req, editingId }),
+    deleteReq:       (category, reqId)             => op('deleteReq',       { category, reqId }),
+    addTrace:        (category, reqId, toId, type) => op('addTrace',        { category, reqId, toId, type }),
+    removeTrace:     (category, reqId, toId)       => op('removeTrace',     { category, reqId, toId }),
+    addComment:      (category, reqId, text)       => op('addComment',      { category, reqId, text }),
+    editComment:     (category, reqId, commentId, text) => op('editComment', { category, reqId, commentId, text }),
+    resolveComment:  (category, reqId, commentId)  => op('resolveComment',  { category, reqId, commentId }),
+    deleteComment:   (category, reqId, commentId)  => op('deleteComment',   { category, reqId, commentId }),
+    saveDiagramState: (blocks, conns, blockIdC, connIdC) => op('saveDiagram', { blocks, conns, blockIdC, connIdC }),
+    importCsvRequirements: (requirements)          => op('importCsv',       { requirements }),
   };
 }

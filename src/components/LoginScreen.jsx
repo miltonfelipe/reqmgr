@@ -8,15 +8,12 @@ export function LoginScreen({ onLogin }) {
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!username.trim() || !password) { setError('Please enter username and password.'); return; }
     setLoading(true); setError('');
-    // Small artificial delay for UX feel
-    setTimeout(() => {
-      const result = onLogin(username.trim(), password);
-      if (!result.ok) { setError(result.error); setLoading(false); }
-    }, 320);
+    const result = await onLogin(username.trim(), password);
+    if (!result.ok) { setError(result.error); setLoading(false); }
   }
 
   return (
@@ -69,15 +66,8 @@ export function LoginScreen({ onLogin }) {
         </form>
 
         <div className={styles.hint}>
-          <div className={styles.hintTitle}>Default accounts</div>
-          <div className={styles.hintRow}>
-            <span className={styles.hintRole}>Requirements Manager</span>
-            <code className={styles.hintCred}>manager / manager123</code>
-          </div>
-          <div className={styles.hintRow}>
-            <span className={styles.hintRole}>Reviewer</span>
-            <code className={styles.hintCred}>reviewer / reviewer123</code>
-          </div>
+          <div className={styles.hintTitle}>No account?</div>
+          <div className={styles.hintText}>Ask your REQMGR administrator to create one.</div>
         </div>
       </div>
     </div>

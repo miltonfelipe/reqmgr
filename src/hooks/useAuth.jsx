@@ -1,86 +1,56 @@
 // ── hooks/useAuth.js ─────────────────────────────────
-import { useState, useCallback } from 'react';
-import {
-  loadAuthDb, saveAuthDb, loadSession, saveSession, clearSession,
-  authenticate, hashPw, ROLES,
-} from '../store/auth';
-import { nowIso } from '../store/db';
+import { useState, useCallback, useEffect } from 'react';
+import { api } from '../api';
 
 export function useAuth() {
-  const [authDb,  setAuthDb]  = useState(() => loadAuthDb());
-  const [session, setSession] = useState(() => loadSession());
+  const [user,     setUser]     = useState(null);
+  const [checking, setChecking] = useState(true);
+  const [users,    setUsers]    = useState([]);
 
-  // ── Login ─────────────────────────────────────────
-  const login = useCallback((username, password) => {
-    const user = authenticate(authDb, username, password);
-    if (!user) return { ok: false, error: 'Invalid username or password' };
-    const sess = {
-      userId:      user.id,
-      username:    user.username,
-      displayName: user.displayName,
-      role:        user.role,
-      loginAt:     nowIso(),
-    };
-    saveSession(sess);
-    setSession(sess);
-    return { ok: true };
-  }, [authDb]);
-
-  // ── Logout ────────────────────────────────────────
-  const logout = useCallback(() => {
-    clearSession();
-    setSession(null);
+  // Resume an existing server session, and drop it when the server says it expired
+  useEffect(() => {
+    api('me').then(setUser, () => setUser(null)).finally(() => setChecking(false));
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener('reqmgr:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('reqmgr:unauthorized', onUnauthorized);
   }, []);
 
-  // ── User management (manager only) ────────────────
-  const addUser = useCallback((username, displayName, role, password) => {
-    if (authDb.users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
-      return { ok: false, error: 'Username already exists' };
+  // ── Login / logout ────────────────────────────────
+  const login = useCallback(async (username, password) => {
+    try {
+      setUser(await api('login', { method: 'POST', body: { username, password } }));
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
     }
-    const newUser = {
-      id:           'usr-' + Date.now(),
-      username,
-      displayName,
-      role,
-      passwordHash: hashPw(password),
-      createdAt:    nowIso(),
-    };
-    const next = { ...authDb, users: [...authDb.users, newUser] };
-    saveAuthDb(next);
-    setAuthDb(next);
-    return { ok: true };
-  }, [authDb]);
+  }, []);
 
-  const deleteUser = useCallback((userId) => {
-    if (userId === session?.userId) return { ok: false, error: 'Cannot delete yourself' };
-    const next = { ...authDb, users: authDb.users.filter(u => u.id !== userId) };
-    saveAuthDb(next);
-    setAuthDb(next);
-    return { ok: true };
-  }, [authDb, session]);
+  const logout = useCallback(async () => {
+    try { await api('logout', { method: 'POST' }); } catch { /* already logged out */ }
+    setUser(null);
+  }, []);
 
-  const changePassword = useCallback((userId, newPassword) => {
-    const next = {
-      ...authDb,
-      users: authDb.users.map(u =>
-        u.id === userId ? { ...u, passwordHash: hashPw(newPassword) } : u
-      ),
-    };
-    saveAuthDb(next);
-    setAuthDb(next);
-    return { ok: true };
-  }, [authDb]);
+  // ── Users (list for everyone; changes are admin only) ──
+  const loadUsers = useCallback(async () => {
+    try { setUsers(await api('users')); } catch { /* shown as an empty list */ }
+  }, []);
+
+  const withReload = useCallback(fn => async (...args) => {
+    try { await fn(...args); await loadUsers(); return { ok: true }; }
+    catch (e) { return { ok: false, error: e.message }; }
+  }, [loadUsers]);
+
+  const addUser = withReload((username, displayName, isAdmin, password) =>
+    api('users', { method: 'POST', body: { username, displayName, isAdmin, password } }));
+  const deleteUser = withReload(userId => api(`users/${userId}`, { method: 'DELETE' }));
+  const changePassword = withReload((userId, password) =>
+    api(`users/${userId}/password`, { method: 'PUT', body: { password } }));
 
   return {
-    session,
-    authDb,
-    isLoggedIn: !!session,
-    isManager:  session?.role === ROLES.MANAGER,
-    isReviewer: session?.role === 'reviewer',
-    login,
-    logout,
-    addUser,
-    deleteUser,
-    changePassword,
+    user, checking, users,
+    isLoggedIn: !!user,
+    isAdmin:    !!user?.isAdmin,
+    login, logout,
+    loadUsers, addUser, deleteUser, changePassword,
   };
 }

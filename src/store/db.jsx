@@ -1,5 +1,5 @@
 // ── store/db.js ──────────────────────────────────────
-const DB_KEY = 'reqmgr_v2';
+const LEGACY_DB_KEY = 'reqmgr_v2';
 
 // Category order reflects the requirements hierarchy:
 //   customer (top-level) → system → hardware / software / mechanical
@@ -51,31 +51,25 @@ export const SECTION_COLORS = [
   '#3b8bff','#22c55e','#f59e0b','#a78bfa','#ef4444','#0d9488','#db2777','#ea580c',
 ];
 
-// ── Persistence ─────────────────────────────────────
-export function loadDb() {
+// ── Browser data from before the server existed ─────
+// Projects used to live in localStorage; they are offered for upload once.
+export function loadLegacyProjects() {
   try {
-    const raw = localStorage.getItem(DB_KEY);
-    if (raw) { const p = JSON.parse(raw); if (p?.projects) return p; }
+    const raw = localStorage.getItem(LEGACY_DB_KEY);
+    if (raw) { const p = JSON.parse(raw); if (p?.projects) return p.projects; }
   } catch { /* storage unavailable */ }
-  return { projects: {} };
+  return {};
 }
 
-export function saveDb(db) {
-  try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch { /* storage unavailable */ }
+export function archiveLegacyProjects() {
+  try {
+    const raw = localStorage.getItem(LEGACY_DB_KEY);
+    if (raw) localStorage.setItem(LEGACY_DB_KEY + '_uploaded', raw);
+    localStorage.removeItem(LEGACY_DB_KEY);
+  } catch { /* storage unavailable */ }
 }
 
 export function nowIso() { return new Date().toISOString(); }
-
-export function makeEmptyProject(id, name) {
-  return {
-    name, version: '1.0.0', status: 'Draft', targetDate: '',
-    description: '', lead: '', customer: '', standards: [], notes: '',
-    createdAt: nowIso(), updatedAt: nowIso(),
-    requirements: { customer: [], system: [], hardware: [], software: [], mechanical: [] },
-    diagramBlocks: {}, diagramConns: [], blockIdC: 0, connIdC: 0,
-    sections: [],   // [{ id, title, description, color, order }]
-  };
-}
 
 export function makeEmptySection(existingSections = []) {
   const id = `sec-${Date.now()}`;
@@ -101,30 +95,6 @@ export function makeEmptyReq(cat, existingIds = []) {
     version: 1, history: [], comments: [],
     sectionId: '',   // links to project.sections[].id
     traces: [],      // [{ toId: 'SYS-001', type: 'derives' }]
-  };
-}
-
-export function makeSnapshot(req, editorName) {
-  return {
-    snapshotId: `snap-${Date.now()}`,
-    version: req.version ?? 1,
-    capturedAt: nowIso(), capturedBy: editorName,
-    title: req.title, statement: req.statement, type: req.type,
-    status: req.status, priority: req.priority, subsystem: req.subsystem,
-    verification: req.verification, source: req.source, owner: req.owner,
-    rationale: req.rationale, acceptance: req.acceptance,
-    objectType: req.objectType ?? 'requirement', reqType: req.reqType ?? 'functional',
-    sectionId: req.sectionId,
-  };
-}
-
-export function makeComment(text, authorId, authorName, authorRole, reqVersion) {
-  return {
-    commentId: `cmt-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
-    text, authorId, authorName, authorRole,
-    createdAt: nowIso(), editedAt: null,
-    resolved: false, resolvedBy: null, resolvedAt: null,
-    reqVersion: reqVersion ?? 1,
   };
 }
 

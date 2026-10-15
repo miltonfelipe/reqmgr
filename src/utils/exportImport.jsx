@@ -1,6 +1,6 @@
 // ── utils/exportImport.js ────────────────────────────
 
-export function exportProject(pid, project) {
+export function exportProject(pid, project, tag = '') {
   const payload = {
     __reqmgr_format: 'reqmgr-v2',
     exportedAt: new Date().toISOString(),
@@ -11,7 +11,7 @@ export function exportProject(pid, project) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `${pid}_${(project.name || 'project').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `${pid}_${(project.name || 'project').replace(/\s+/g, '_')}_${tag || new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
